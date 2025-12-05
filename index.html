@@ -15,7 +15,7 @@
       }
       /* Custom scrollbar */
       ::-webkit-scrollbar {
-        width: 8px;
+        width: 6px;
       }
       ::-webkit-scrollbar-track {
         background: #1e293b;
@@ -35,11 +35,11 @@
         100% { transform: scale(1); opacity: 1; }
       }
       .animate-float {
-        animation: float 3s ease-in-out infinite;
+        animation: float 6s ease-in-out infinite;
       }
       @keyframes float {
         0% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
+        50% { transform: translateY(-20px); }
         100% { transform: translateY(0px); }
       }
       .animate-spin-slow {
@@ -48,6 +48,26 @@
       @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
+      }
+      /* Crafting Animations */
+      .animate-merge-left {
+        animation: mergeLeft 0.5s ease-in-out forwards;
+      }
+      @keyframes mergeLeft {
+        0% { transform: translateX(0) scale(1); opacity: 1; }
+        50% { transform: translateX(60px) scale(0.8); opacity: 0.8; }
+        100% { transform: translateX(120px) scale(0.1); opacity: 0; }
+      }
+      .animate-merge-right {
+        animation: mergeRight 0.5s ease-in-out forwards;
+      }
+      @keyframes mergeRight {
+        0% { transform: translateX(0) scale(1); opacity: 1; }
+        50% { transform: translateX(-60px) scale(0.8); opacity: 0.8; }
+        100% { transform: translateX(-120px) scale(0.1); opacity: 0; }
+      }
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
       }
     </style>
   <script type="importmap">
@@ -63,5 +83,6 @@
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

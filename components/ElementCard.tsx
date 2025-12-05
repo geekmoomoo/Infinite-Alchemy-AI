@@ -75,7 +75,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({
         ${selected ? "ring-4 ring-white scale-105 z-10" : "hover:scale-105"}
         ${disabled ? "opacity-50 cursor-not-allowed grayscale" : (onClick ? "cursor-pointer" : "cursor-default")}
         ${rarityClass}
-        animate-pop shadow-lg overflow-hidden
+        animate-pop shadow-lg
         ${hasImage ? 'p-0 border-0' : ''}
       `}
       style={useDynamicColor && !hasImage ? {
@@ -90,18 +90,18 @@ export const ElementCard: React.FC<ElementCardProps> = ({
         <img 
           src={element.imageUrl} 
           alt={element.name} 
-          className="absolute inset-0 w-full h-full object-cover z-0"
+          className="absolute inset-0 w-full h-full object-cover z-0 rounded-2xl"
         />
       )}
       
       {/* Overlay to ensure text readability on images */}
       {hasImage && (
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10 rounded-2xl"></div>
       )}
 
       {/* Cursed Glitch Effect */}
       {element.rarity === "CURSED" && !hasImage && (
-         <div className="absolute inset-0 bg-black opacity-20 mix-blend-overlay animate-pulse pointer-events-none"></div>
+         <div className="absolute inset-0 bg-black opacity-20 mix-blend-overlay animate-pulse pointer-events-none rounded-2xl"></div>
       )}
 
       {/* Rarity Badge (Top Left) */}
@@ -124,7 +124,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({
       </span>
 
       {element.isNew && (
-        <span className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-bounce z-30">
+        <span className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-bounce z-30 border border-yellow-200">
           NEW
         </span>
       )}
