@@ -15,6 +15,7 @@ export const NewDiscoveryModal: React.FC<NewDiscoveryModalProps> = ({
 
   const isNew = element.isNew;
   const rarity = element.rarity || "COMMON";
+  const hasImage = !!element.imageUrl;
 
   const getRarityColor = () => {
     switch(rarity) {
@@ -59,7 +60,7 @@ export const NewDiscoveryModal: React.FC<NewDiscoveryModalProps> = ({
              <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.05)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.05)_50%,rgba(255,255,255,0.05)_75%,transparent_75%,transparent)] bg-[length:20px_20px] opacity-30 pointer-events-none" />
         )}
         
-        <div className="z-10 text-center flex flex-col items-center">
+        <div className="z-10 text-center flex flex-col items-center w-full">
             <h3 className={`font-black tracking-widest uppercase mb-2 text-sm ${getRarityColor()} flex items-center gap-2`}>
                 {isNew ? '✨ NEW DISCOVERY' : 'REDISCOVERY'}
                 {isSpecial && <span className="px-2 py-0.5 bg-white/10 rounded text-[10px]">{rarity}</span>}
@@ -69,8 +70,18 @@ export const NewDiscoveryModal: React.FC<NewDiscoveryModalProps> = ({
                 {isNew ? getRarityTitle() : '이미 아는 원소'}
             </h2>
             
+            {/* Display Logic */}
             <div className={`flex justify-center mb-6 transform transition-all duration-500 ${isNew ? 'scale-110' : ''} ${rarity === 'MEME' ? 'rotate-3' : ''}`}>
-              <ElementCard element={element} size="lg" />
+               {hasImage ? (
+                   <div className="w-64 h-64 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10 relative group">
+                       <img src={element.imageUrl} alt={element.name} className="w-full h-full object-cover" />
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-center pb-4">
+                           <span className="text-white font-bold text-xl">{element.name}</span>
+                       </div>
+                   </div>
+               ) : (
+                   <ElementCard element={element} size="lg" />
+               )}
             </div>
 
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 w-full mb-6">

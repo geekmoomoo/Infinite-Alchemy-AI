@@ -9,6 +9,7 @@ export interface Element {
   isNew?: boolean;
   description?: string;
   rarity?: Rarity;
+  imageUrl?: string; // New: Stores the base64 image data
 }
 
 export interface CombinationResult {
@@ -17,6 +18,7 @@ export interface CombinationResult {
   color: string;
   description: string;
   rarity: Rarity;
+  imageUrl?: string;
 }
 
 export interface GameState {

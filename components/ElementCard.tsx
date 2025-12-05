@@ -61,6 +61,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({
 
   // Common items use the dynamic color logic, others use fixed gradients
   const useDynamicColor = !element.rarity || element.rarity === "COMMON";
+  const hasImage = !!element.imageUrl;
 
   return (
     <button
@@ -75,36 +76,55 @@ export const ElementCard: React.FC<ElementCardProps> = ({
         ${disabled ? "opacity-50 cursor-not-allowed grayscale" : (onClick ? "cursor-pointer" : "cursor-default")}
         ${rarityClass}
         animate-pop shadow-lg overflow-hidden
+        ${hasImage ? 'p-0 border-0' : ''}
       `}
-      style={useDynamicColor ? {
+      style={useDynamicColor && !hasImage ? {
         backgroundColor: element.color,
         borderColor: adjustColor(element.color, -40),
         color: isLightColor(element.color) ? "#1e293b" : "#ffffff",
         borderBottomWidth: '4px'
-      } : { borderBottomWidth: '4px' }}
+      } : { borderBottomWidth: hasImage ? '0' : '4px' }}
     >
+      {/* Background Image if available */}
+      {hasImage && (
+        <img 
+          src={element.imageUrl} 
+          alt={element.name} 
+          className="absolute inset-0 w-full h-full object-cover z-0"
+        />
+      )}
+      
+      {/* Overlay to ensure text readability on images */}
+      {hasImage && (
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
+      )}
+
       {/* Cursed Glitch Effect */}
-      {element.rarity === "CURSED" && (
+      {element.rarity === "CURSED" && !hasImage && (
          <div className="absolute inset-0 bg-black opacity-20 mix-blend-overlay animate-pulse pointer-events-none"></div>
       )}
 
       {/* Rarity Badge (Top Left) */}
       {badge && (
-        <span className="absolute top-1 left-1 text-[10px] filter drop-shadow-md z-10">
+        <span className="absolute top-1 left-1 text-[10px] filter drop-shadow-md z-20">
           {badge}
         </span>
       )}
 
-      <span className={`${emojiSizes[size]} drop-shadow-md mb-1 z-10 relative`}>
-        {element.emoji}
-      </span>
+      {/* Content - Show Emoji only if no image */}
+      {!hasImage && (
+        <span className={`${emojiSizes[size]} drop-shadow-md mb-1 z-10 relative`}>
+          {element.emoji}
+        </span>
+      )}
       
-      <span className="font-bold truncate w-full px-1 text-center leading-tight z-10 relative">
+      {/* Name - Ensure visibility on image */}
+      <span className={`font-bold truncate w-full px-1 text-center leading-tight z-20 relative ${hasImage ? 'text-white mt-auto mb-2 text-shadow' : ''}`}>
         {element.name}
       </span>
 
       {element.isNew && (
-        <span className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-bounce z-20">
+        <span className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-bounce z-30">
           NEW
         </span>
       )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Element, GameState, Era } from "./types";
-import { combineElements } from "./services/geminiService";
+import { combineElements, generateElementImage } from "./services/geminiService";
 import { ElementCard } from "./components/ElementCard";
 import { CraftingTable } from "./components/CraftingTable";
 import { NewDiscoveryModal } from "./components/NewDiscoveryModal";
@@ -11,13 +11,13 @@ import { MissionModal } from "./components/MissionModal";
 import { EraModal } from "./components/EraModal";
 
 const INITIAL_ELEMENTS: Element[] = [
-  { id: "water", name: "물", emoji: "💧", color: "#3b82f6", discoveredAt: 0 },
-  { id: "fire", name: "불", emoji: "🔥", color: "#ef4444", discoveredAt: 0 },
-  { id: "earth", name: "흙", emoji: "🌱", color: "#84cc16", discoveredAt: 0 },
-  { id: "air", name: "바람", emoji: "💨", color: "#94a3b8", discoveredAt: 0 },
+  { id: "water", name: "물", emoji: "💧", color: "#3b82f6", discoveredAt: 0, description: "모든 생명의 근원이 되는 맑은 액체입니다." },
+  { id: "fire", name: "불", emoji: "🔥", color: "#ef4444", discoveredAt: 0, description: "따뜻하지만 위험한 파괴와 창조의 힘입니다." },
+  { id: "earth", name: "흙", emoji: "🌱", color: "#84cc16", discoveredAt: 0, description: "생명이 자라나는 단단한 대지입니다." },
+  { id: "air", name: "바람", emoji: "💨", color: "#94a3b8", discoveredAt: 0, description: "보이지 않지만 어디에나 흐르는 기체입니다." },
 ];
 
-const STORAGE_KEY = "infinite-alchemy-state-v4"; // Version bump
+const STORAGE_KEY = "infinite-alchemy-state-v4"; 
 const DEMO_LIMIT = 50;
 
 // Define Eras and Missions
@@ -81,10 +81,12 @@ export default function App() {
   const [slot1, setSlot1] = useState<Element | null>(null);
   const [slot2, setSlot2] = useState<Element | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<string>(""); // Added for image gen status
   
   // Progression
   const [currentEraIndex, setCurrentEraIndex] = useState(0);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
+  const [combineCount, setCombineCount] = useState(0); // Track combinations for MEME trigger
 
   // Modals
   const [newDiscovery, setNewDiscovery] = useState<Element | null>(null);
@@ -104,6 +106,7 @@ export default function App() {
         setRecipes(parsed.recipes || {});
         setCurrentEraIndex(parsed.currentEraIndex || 0);
         setCompletedMissions(parsed.completedMissions || []);
+        // Note: combineCount is ephemeral, no need to persist for this fun mechanic
       } catch (e) {
         console.error("Failed to load save", e);
       }
@@ -122,12 +125,20 @@ export default function App() {
   }, [inventory, recipes, currentEraIndex, completedMissions]);
 
   const handleElementClick = (element: Element) => {
+    // If element is marked as NEW, clear it upon use
+    if (element.isNew) {
+      setInventory(prev => prev.map(el => el.id === element.id ? { ...el, isNew: false } : el));
+    }
+    
+    // Use the clean version for the slot (so it doesn't show NEW in the slot)
+    const cleanElement = { ...element, isNew: false };
+
     if (!slot1) {
-      setSlot1(element);
+      setSlot1(cleanElement);
     } else if (!slot2) {
-      setSlot2(element);
+      setSlot2(cleanElement);
     } else {
-      setSlot2(element);
+      setSlot2(cleanElement);
     }
   };
 
@@ -192,37 +203,84 @@ export default function App() {
 
     const ids = [slot1.id, slot2.id].sort();
     const comboId = ids.join("+");
+    
+    // Get current active missions for this era to guide the AI
+    const currentEra = ERAS[currentEraIndex];
+    const activeMissionTargets = currentEra.missions
+      .filter(m => !completedMissions.includes(m.id))
+      .map(m => m.targetName);
 
+    // Check if we have a cached recipe
+    let previousResultName: string | undefined = undefined;
     if (recipes[comboId]) {
-      const resultName = recipes[comboId];
-      const cachedElement = inventory.find((e) => e.name === resultName);
-
-      if (cachedElement) {
+      const cachedResult = recipes[comboId];
+      const cachedElement = inventory.find((e) => e.name === cachedResult);
+      
+      const isCachedResultMissionTarget = activeMissionTargets.includes(cachedResult);
+      
+      if (isCachedResultMissionTarget && cachedElement) {
         setNewDiscovery({ ...cachedElement, isNew: false });
+        checkProgress(cachedResult);
         setSlot1(null);
         setSlot2(null);
         return;
       }
+
+      previousResultName = cachedResult;
     }
 
     setIsProcessing(true);
+    setProcessingStatus(""); // Reset status
 
     try {
+      setCombineCount(prev => prev + 1);
       const currentEraName = ERAS[currentEraIndex].name;
-      const result = await combineElements(slot1, slot2, currentEraName);
+      
+      // Force MEME every 30 combinations
+      const forceMeme = combineCount > 0 && combineCount % 30 === 0;
 
+      // 1. Generate Text Result
+      const result = await combineElements(
+        slot1, 
+        slot2, 
+        currentEraName, 
+        activeMissionTargets,
+        previousResultName,
+        forceMeme
+      );
+
+      // 2. If it's a MEME, generate an image!
+      if (result.rarity === "MEME") {
+         setProcessingStatus("이미지 생성 중... 🎨");
+         const imageUrl = await generateElementImage(result.name, result.description);
+         if (imageUrl) {
+            result.imageUrl = imageUrl;
+         }
+      }
+
+      // Update recipe to the NEW result (Refining knowledge)
       setRecipes((prev) => ({ ...prev, [comboId]: result.name }));
 
       const existingElement = inventory.find((e) => e.name === result.name);
 
       if (existingElement) {
+        // If it gained an image and didn't have one before, update it
+        const needsUpdate = result.imageUrl && !existingElement.imageUrl;
+        
         const foundEl: Element = {
           id: existingElement.id,
           ...result,
+          imageUrl: result.imageUrl || existingElement.imageUrl, // Prefer new image
           discoveredAt: existingElement.discoveredAt,
           isNew: false,
         };
+        
+        if (needsUpdate) {
+            setInventory(prev => prev.map(el => el.id === foundEl.id ? foundEl : el));
+        }
+
         setNewDiscovery(foundEl);
+        checkProgress(foundEl.name);
       } else {
         const newEl: Element = {
           id: Date.now().toString(),
@@ -233,20 +291,25 @@ export default function App() {
 
         setInventory(prev => [newEl, ...prev]);
         setNewDiscovery(newEl);
-        
-        // Check Missions & Era Progression
         checkProgress(newEl.name);
       }
     } catch (error) {
       console.error(error);
     } finally {
       setIsProcessing(false);
+      setProcessingStatus("");
       setSlot1(null);
       setSlot2(null);
     }
-  }, [slot1, slot2, isProcessing, inventory, recipes, currentEraIndex, completedMissions]);
+  }, [slot1, slot2, isProcessing, inventory, recipes, currentEraIndex, completedMissions, combineCount]);
 
   const handleCloseDiscovery = () => {
+    // Clear isNew flag in inventory for the currently discovered element
+    if (newDiscovery && newDiscovery.isNew) {
+      setInventory(prev => prev.map(el => 
+        el.id === newDiscovery.id ? { ...el, isNew: false } : el
+      ));
+    }
     setNewDiscovery(null);
     if (inventory.length >= DEMO_LIMIT && !showEraUpgrade && !showEnding) {
       setTimeout(() => setShowDemoLimit(true), 500);
@@ -339,6 +402,7 @@ export default function App() {
             slot2={slot2}
             onSlotClick={handleSlotClick}
             isProcessing={isProcessing}
+            processingStatus={processingStatus}
             onCombine={handleCombine}
             onClear={clearSlots}
           />
